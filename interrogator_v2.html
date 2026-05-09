@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="審問官">
+<title>Interrogator — 自己審問システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --red:#E24B4A;
+  --mono:'IBM Plex Mono',monospace;
+  --serif:'Noto Serif JP',serif;
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+  --ink:#1a1a18;--ink2:#5a5a56;--ink3:#9a9a94;
+  --b:rgba(0,0,0,0.1);--b2:rgba(0,0,0,0.18);
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#141413;--bg2:#1e1e1c;--bg3:#262624;--ink:#f0f0ec;--ink2:#a0a09a;--ink3:#606058;--b:rgba(255,255,255,0.1);--b2:rgba(255,255,255,0.18);}
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;min-height:100dvh;}
+.app{max-width:480px;margin:0 auto;padding:16px 16px 40px;}
+
+/* API Key Screen */
+.apikey-screen{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:32px 16px;max-width:480px;margin:0 auto;}
+.ak-title{font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:6px;}
+.ak-sub{font-size:12px;color:var(--ink3);margin-bottom:24px;line-height:1.6;}
+.ak-label{font-size:11px;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;margin-bottom:6px;}
+.ak-input{width:100%;background:var(--bg2);border:.5px solid var(--b2);border-radius:var(--radius);padding:12px;font-family:var(--mono);font-size:13px;color:var(--ink);margin-bottom:12px;}
+.ak-input:focus{outline:none;border-color:var(--red);}
+.ak-btn{width:100%;padding:14px;background:var(--red);border:none;border-radius:var(--radius);color:#fff;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;min-height:48px;}
+.ak-note{font-size:11px;color:var(--ink3);margin-top:12px;line-height:1.6;}
+.ak-note a{color:var(--red);}
+
+/* Header */
+.app-header{background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius-lg);padding:14px;margin-bottom:14px;}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.level-badge{display:inline-block;font-size:10px;letter-spacing:.1em;padding:3px 8px;border-radius:99px;border:.5px solid var(--b2);color:var(--ink2);margin-bottom:4px;}
+.level-title{font-size:18px;font-weight:500;line-height:1.2;}
+.hdr-right{display:flex;gap:14px;}
+.hstat{text-align:center;}
+.hstat-num{font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1;}
+.hstat-num.red{color:var(--red);}
+.hstat-num.fire{color:#BA7517;}
+.hstat-lbl{font-size:10px;color:var(--ink3);margin-top:2px;letter-spacing:.06em;}
+.xp-row{display:flex;align-items:center;gap:8px;}
+.xp-bar-bg{flex:1;height:5px;background:var(--b);border-radius:3px;overflow:hidden;}
+.xp-bar-fill{height:100%;background:var(--red);border-radius:3px;transition:width .6s ease;}
+.xp-label{font-size:11px;color:var(--ink3);white-space:nowrap;}
+.settings-btn{background:none;border:none;font-size:11px;color:var(--ink3);cursor:pointer;font-family:var(--mono);padding:2px 6px;text-decoration:underline;margin-top:8px;}
+
+/* Tabs */
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:.5px solid var(--b2);margin-bottom:14px;}
+.tab{font-family:var(--mono);font-size:12px;padding:10px 4px;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink3);cursor:pointer;text-align:center;margin-bottom:-.5px;letter-spacing:.04em;}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+.section{display:none;}.section.active{display:block;}
+
+/* Form */
+.fg{margin-bottom:12px;}
+.fl{font-size:11px;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-r{background:var(--red);}.dot-g{background:#639922;}.dot-b{background:#378ADD;}
+textarea{width:100%;background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius);padding:12px;font-family:var(--serif);font-size:14px;color:var(--ink);resize:vertical;min-height:76px;line-height:1.7;}
+textarea:focus{outline:none;border-color:var(--b2);}
+textarea::placeholder{color:var(--ink3);font-style:italic;}
+.btn{width:100%;margin-top:10px;padding:14px;background:none;border:.5px solid var(--red);border-radius:var(--radius);color:var(--red);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;min-height:48px;}
+.btn:active:not(:disabled){background:var(--red);color:#fff;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.save-notice{margin-top:8px;font-size:11px;color:#639922;display:none;}
+.save-notice.v{display:block;}
+
+/* Response */
+.resp{margin-top:14px;border-top:.5px solid var(--b);padding-top:14px;display:none;}
+.resp.v{display:block;}
+.resp-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.resp-tag{font-size:10px;letter-spacing:.1em;color:var(--ink3);}
+.resp-line{flex:1;height:.5px;background:var(--b);}
+.score-row{display:flex;gap:10px;margin-bottom:12px;align-items:stretch;}
+.score-card{background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius);padding:10px 14px;flex:0 0 auto;text-align:center;}
+.sc-lbl{font-size:10px;color:var(--ink3);letter-spacing:.08em;margin-bottom:3px;}
+.sc-num{font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1;}
+.sc-num.high{color:#639922;}.sc-num.mid{color:#BA7517;}.sc-num.low{color:var(--red);}
+.bar-wrap{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;}
+.bar-bg{height:5px;background:var(--b);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.up-lbl{font-size:10px;color:var(--ink3);letter-spacing:.06em;}
+.up-txt{font-family:var(--serif);font-size:13px;color:var(--ink2);line-height:1.6;}
+.sdiv{height:.5px;background:var(--b);margin:12px 0;}
+.resp-text{font-family:var(--serif);font-size:14px;line-height:1.9;color:var(--ink);}
+.final-q{display:block;margin-top:10px;color:var(--red);font-weight:700;border-left:2px solid var(--red);padding-left:10px;}
+.lbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:99px;border:.5px solid var(--b);}
+.lbadge.ok{border-color:#639922;color:#3B6D11;background:#EAF3DE;}
+.lbadge.ng{border-color:var(--red);color:#791F1F;}
+@media(prefers-color-scheme:dark){
+  .lbadge.ok{color:#9FE1CB;background:#085041;}
+  .lbadge.ng{color:#F09595;}
+}
+.ld{display:flex;gap:4px;align-items:center;padding:8px 0;}
+.ldd{width:5px;height:5px;border-radius:50%;background:var(--ink3);animation:pulse 1.2s ease-in-out infinite;}
+.ldd:nth-child(2){animation-delay:.2s;}.ldd:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.err-txt{font-size:13px;color:var(--red);font-family:var(--serif);}
+
+/* Yesterday card */
+.ycard{background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius);padding:12px;margin-bottom:12px;}
+.ycard-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.ycard-lbl{font-size:10px;letter-spacing:.08em;color:var(--ink3);}
+.ycard-body{font-family:var(--serif);font-size:13px;color:var(--ink2);line-height:1.7;white-space:pre-wrap;}
+
+/* Log tab */
+.log-section{margin-bottom:20px;}
+.log-section-title{font-size:10px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase;margin-bottom:10px;}
+.week-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:6px;}
+.wstat{background:var(--bg2);border-radius:var(--radius);padding:10px 12px;text-align:center;}
+.wstat-val{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;}
+.wstat-lbl{font-size:11px;color:var(--ink3);margin-top:2px;}
+.week-trend{font-size:12px;color:var(--ink3);text-align:center;padding:4px 0;}
+.trend-up{color:#639922;}.trend-dn{color:var(--red);}.trend-flat{color:var(--ink3);}
+.chart-wrap{background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius);padding:12px 12px 8px;margin-bottom:4px;}
+.chart-no{font-size:12px;color:var(--ink3);font-family:var(--serif);text-align:center;padding:24px 0;font-style:italic;}
+.badges-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.badge-card{background:var(--bg2);border:.5px solid var(--b);border-radius:var(--radius);padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.badge-card.earned{background:var(--bg);border-color:var(--b2);}
+.badge-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center;opacity:.3;}
+.badge-card.earned .badge-icon{opacity:1;}
+.badge-name{font-size:12px;font-weight:500;color:var(--ink3);line-height:1.3;}
+.badge-card.earned .badge-name{color:var(--ink);}
+.badge-desc{font-size:11px;color:var(--ink3);line-height:1.4;margin-top:2px;}
+.log-entry{border:.5px solid var(--b);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;}
+.le-hdr{display:flex;justify-content:space-between;margin-bottom:5px;}
+.le-date{font-size:11px;color:var(--ink3);}
+.le-score{font-size:11px;font-weight:500;}
+.le-score.high{color:#639922;}.le-score.mid{color:#BA7517;}.le-score.low{color:var(--red);}
+.le-prev{font-family:var(--serif);font-size:12px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.log-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.clear-btn{background:none;border:none;font-size:11px;color:var(--ink3);cursor:pointer;font-family:var(--mono);text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<!-- API Key Screen -->
+<div class="apikey-screen" id="apikey-screen" style="display:none;">
+  <div class="ak-title">Interrogator</div>
+  <div class="ak-sub">自己審問システムを起動するには<br>Anthropic APIキーが必要です。</div>
+  <div class="ak-label">APIキー</div>
+  <input class="ak-input" type="password" id="ak-input" placeholder="sk-ant-...">
+  <button class="ak-btn" onclick="saveApiKey()">起動する →</button>
+  <div class="ak-note">
+    APIキーは <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> で取得できます。<br>
+    キーはこのデバイスのみに保存され、外部に送信されません。
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="app" id="main-app" style="display:none;">
+
+  <div class="app-header">
+    <div class="hdr-top">
+      <div>
+        <div class="level-badge" id="level-badge">Lv.1</div>
+        <div class="level-title" id="level-title">審問見習い</div>
+      </div>
+      <div class="hdr-right">
+        <div class="hstat">
+          <div class="hstat-num fire" id="streak-num">0</div>
+          <div class="hstat-lbl">🔥 連続</div>
+        </div>
+        <div class="hstat">
+          <div class="hstat-num red" id="days-count">—</div>
+          <div class="hstat-lbl">days to 40</div>
+        </div>
+      </div>
+    </div>
+    <div class="xp-row">
+      <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+      <div class="xp-label" id="xp-label">0 XP</div>
+    </div>
+    <div><button class="settings-btn" onclick="showApiKeyScreen()">APIキーを変更</button></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('reflect',this)">振り返り</button>
+    <button class="tab" onclick="switchTab('goal',this)">目標設定</button>
+    <button class="tab" onclick="switchTab('log',this)">ログ</button>
+  </div>
+
+  <!-- 振り返り -->
+  <div id="tab-reflect" class="section active">
+    <div class="fg">
+      <div class="fl"><span class="dot dot-g"></span>Good — うまくいったこと</div>
+      <textarea id="good-input" rows="3" placeholder="具体的に書く。抽象的な美談は受け付けない。"></textarea>
+    </div>
+    <div class="fg">
+      <div class="fl"><span class="dot dot-r"></span>More — 反省・改善すべきこと</div>
+      <textarea id="more-input" rows="3" placeholder="何を、なぜ、どう変える。言い訳は書かない。"></textarea>
+    </div>
+    <button class="btn" id="reflect-btn" onclick="submitReflect()">審問を開始する →</button>
+    <div class="save-notice" id="save-notice">✓ 本日の振り返りを保存した</div>
+    <div id="reflect-resp" class="resp">
+      <div class="resp-hdr"><span class="resp-tag">Interrogator</span><div class="resp-line"></div></div>
+      <div id="reflect-score-area"></div>
+      <div id="reflect-text" class="resp-text"></div>
+    </div>
+  </div>
+
+  <!-- 目標設定 -->
+  <div id="tab-goal" class="section">
+    <div id="yesterday-area"></div>
+    <div class="fg">
+      <div class="fl"><span class="dot dot-r"></span>今日の目標・コミットメント</div>
+      <textarea id="goal-input" rows="4" placeholder="何を・いつまでに・どの水準で。願望ではなく宣言として書く。"></textarea>
+    </div>
+    <button class="btn" id="goal-btn" onclick="submitGoal()">審問を開始する →</button>
+    <div id="goal-resp" class="resp">
+      <div class="resp-hdr"><span class="resp-tag">Interrogator</span><div class="resp-line"></div></div>
+      <div id="goal-score-area"></div>
+      <div id="goal-text" class="resp-text"></div>
+    </div>
+  </div>
+
+  <!-- ログ -->
+  <div id="tab-log" class="section">
+    <div class="log-section">
+      <div class="log-section-title">週間レポート</div>
+      <div class="week-grid" id="week-stats"></div>
+      <div class="week-trend" id="week-trend"></div>
+    </div>
+    <div class="log-section">
+      <div class="log-section-title">直近7日スコア推移</div>
+      <div class="chart-wrap">
+        <div class="chart-no" id="chart-no">振り返りを記録すると表示される</div>
+        <canvas id="score-chart" style="display:none;width:100%;height:110px;"></canvas>
+      </div>
+    </div>
+    <div class="log-section">
+      <div class="log-section-title">実績バッジ</div>
+      <div class="badges-grid" id="badges-grid"></div>
+    </div>
+    <div class="log-section">
+      <div class="log-title-row">
+        <div class="log-section-title" style="margin-bottom:0">振り返りログ</div>
+        <button class="clear-btn" onclick="clearAllLogs()">全削除</button>
+      </div>
+      <div id="log-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── API Key ──────────────────────────────────────────
+function getApiKey(){return localStorage.getItem('iq:apikey')||'';}
+function saveApiKey(){
+  const v=document.getElementById('ak-input').value.trim();
+  if(!v){alert('APIキーを入力してください');return;}
+  localStorage.setItem('iq:apikey',v);
+  document.getElementById('apikey-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  init();
+}
+function showApiKeyScreen(){
+  document.getElementById('ak-input').value=getApiKey();
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('apikey-screen').style.display='flex';
+}
+
+// ── Storage (localStorage) ───────────────────────────
+const LS={
+  set(k,v){localStorage.setItem(k,JSON.stringify(v));},
+  get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}},
+  del(k){localStorage.removeItem(k);},
+  keys(prefix){return Object.keys(localStorage).filter(k=>k.startsWith(prefix));}
+};
+
+// ── Constants ────────────────────────────────────────
+const TARGET=new Date('2030-12-05T00:00:00');
+const LEVELS=[
+  {xp:0,   lv:1,title:'審問見習い', next:300},
+  {xp:300,  lv:2,title:'内省者',     next:900},
+  {xp:900,  lv:3,title:'批判的思考者',next:2000},
+  {xp:2000,lv:4,title:'深淵の問者',next:3500},
+  {xp:3500,lv:5,title:'鉄の意志',  next:null},
+];
+const BADGES=[
+  {id:'first', icon:'🎯',name:'初審問',    desc:'初めて審問を完了'},
+  {id:'s70',   icon:'📈',name:'70点突破',  desc:'振り返りで70点以上'},
+  {id:'s80',   icon:'🔥',name:'80点突破',  desc:'振り返りで80点以上'},
+  {id:'s90',   icon:'💎',name:'90点突破',  desc:'振り返りで90点以上'},
+  {id:'str3',  icon:'⚡',name:'3日連続',   desc:'3日連続で記録'},
+  {id:'str7',  icon:'🏆',name:'7日連続',   desc:'7日連続で記録'},
+  {id:'cnt10', icon:'📚',name:'10回完了',  desc:'累計10回の審問'},
+  {id:'cnt30', icon:'⚔️',name:'30回完了', desc:'累計30回の審問'},
+];
+
+// ── Utilities ────────────────────────────────────────
+function dateKey(d){return`reflect:${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function todayKey(){return dateKey(new Date());}
+function yesterdayKey(){const d=new Date();d.setDate(d.getDate()-1);return dateKey(d);}
+function shortLabel(key){const p=key.split(':')[1].split('-');return`${parseInt(p[1])}/${parseInt(p[2])}`;}
+function fullLabel(key){const p=key.split(':')[1].split('-');return`${p[0]}年${parseInt(p[1])}月${parseInt(p[2])}日`;}
+function scCls(n){return n>=75?'high':n>=50?'mid':'low';}
+function barColor(n){return n>=75?'#639922':n>=50?'#BA7517':'#E24B4A';}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── Data ─────────────────────────────────────────────
+function getAllLogs(){
+  return LS.keys('reflect:')
+    .sort()
+    .map(k=>({key:k,...(LS.get(k)||{})}))
+    .filter(l=>l.score!==undefined);
+}
+function getEarnedBadges(){return LS.get('meta:badges')||[];}
+function calcStreak(logs){
+  if(!logs.length)return 0;
+  const keySet=new Set(logs.map(l=>l.key));
+  let streak=0;const now=new Date();now.setHours(0,0,0,0);let cur=new Date(now);
+  if(!keySet.has(dateKey(cur)))cur.setDate(cur.getDate()-1);
+  while(keySet.has(dateKey(cur))){streak++;cur.setDate(cur.getDate()-1);}
+  return streak;
+}
+function calcXP(logs){return logs.reduce((s,l)=>s+(l.score||0),0);}
+function getLevel(xp){let lv=LEVELS[0];for(const l of LEVELS){if(xp>=l.xp)lv=l;}return lv;}
+function checkNewBadges(logs,streak,earned){
+  const checks={first:logs.length>=1,s70:logs.some(l=>l.score>=70),s80:logs.some(l=>l.score>=80),s90:logs.some(l=>l.score>=90),str3:streak>=3,str7:streak>=7,cnt10:logs.length>=10,cnt30:logs.length>=30};
+  return Object.entries(checks).filter(([id,ok])=>ok&&!earned.includes(id)).map(([id])=>id);
+}
+
+// ── Header ───────────────────────────────────────────
+function refreshHeader(){
+  const logs=getAllLogs();
+  const xp=calcXP(logs);
+  const lv=getLevel(xp);
+  const streak=calcStreak(logs);
+  document.getElementById('level-title').textContent=lv.title;
+  document.getElementById('level-badge').textContent=`Lv.${lv.lv}`;
+  document.getElementById('streak-num').textContent=streak;
+  document.getElementById('days-count').textContent=Math.max(0,Math.floor((TARGET-new Date())/86400000)).toLocaleString();
+  const pct=lv.next?Math.min(100,Math.round(((xp-lv.xp)/(lv.next-lv.xp))*100)):100;
+  document.getElementById('xp-bar').style.width=pct+'%';
+  document.getElementById('xp-label').textContent=`${xp.toLocaleString()} XP`;
+}
+
+// ── Yesterday ────────────────────────────────────────
+function loadYesterdayLog(){
+  const area=document.getElementById('yesterday-area');
+  const d=LS.get(yesterdayKey());
+  if(d&&d.score!==undefined){
+    area.innerHTML=`<div class="ycard"><div class="ycard-hdr"><span class="ycard-lbl">▲ 昨日の振り返り（自動参照）</span><span class="le-score ${scCls(d.score)}" style="font-size:12px">${d.score}点</span></div><div class="ycard-body">Good: ${escH(d.good)}\nMore: ${escH(d.more)}</div></div>`;
+  }else{
+    area.innerHTML=`<div class="ycard" style="text-align:center;border-style:dashed;"><div style="font-size:12px;color:var(--ink3);">昨日のログなし — まず振り返りタブから記録せよ</div></div>`;
+  }
+}
+
+// ── Log Tab ──────────────────────────────────────────
+function renderLog(){renderWeeklyReport();renderChart();renderBadges();renderLogList();}
+
+function renderWeeklyReport(){
+  const logs=getAllLogs();
+  const now=new Date();now.setHours(0,0,0,0);
+  const dow=now.getDay()||7;
+  const monThis=new Date(now);monThis.setDate(now.getDate()-(dow-1));
+  const monLast=new Date(monThis);monLast.setDate(monThis.getDate()-7);
+  const sunLast=new Date(monThis);sunLast.setDate(monThis.getDate()-1);
+  function inRange(l,from,to){const d=new Date(l.key.split(':')[1]);return d>=from&&d<=to;}
+  const tw=logs.filter(l=>inRange(l,monThis,now));
+  const lw=logs.filter(l=>inRange(l,monLast,sunLast));
+  const ta=tw.length?Math.round(tw.reduce((s,l)=>s+(l.score||0),0)/tw.length):null;
+  const la=lw.length?Math.round(lw.reduce((s,l)=>s+(l.score||0),0)/lw.length):null;
+  document.getElementById('week-stats').innerHTML=`
+    <div class="wstat"><div class="wstat-val ${ta!==null?scCls(ta):''}">${ta!==null?ta:'—'}</div><div class="wstat-lbl">今週平均 (${tw.length}回)</div></div>
+    <div class="wstat"><div class="wstat-val ${la!==null?scCls(la):''}">${la!==null?la:'—'}</div><div class="wstat-lbl">先週平均 (${lw.length}回)</div></div>`;
+  const wt=document.getElementById('week-trend');
+  if(ta!==null&&la!==null){
+    const diff=ta-la;
+    wt.innerHTML=diff>0?`<span class="trend-up">↑ 先週比 +${diff}点</span>`:diff<0?`<span class="trend-dn">↓ 先週比 ${diff}点</span>`:`<span class="trend-flat">→ 先週と同水準</span>`;
+  }else{wt.textContent='';}
+}
+
+function renderChart(){
+  const logs=getAllLogs();
+  const now=new Date();
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);days.push(dateKey(d));}
+  const logMap={};logs.forEach(l=>logMap[l.key]=l.score);
+  const scores=days.map(k=>logMap[k]!==undefined?logMap[k]:null);
+  const valid=scores.filter(s=>s!==null);
+  const noEl=document.getElementById('chart-no');
+  const cvs=document.getElementById('score-chart');
+  if(!valid.length){noEl.style.display='block';cvs.style.display='none';return;}
+  noEl.style.display='none';cvs.style.display='block';
+  const dpr=window.devicePixelRatio||1;
+  const W=cvs.parentElement.clientWidth-24;const H=110;
+  cvs.width=W*dpr;cvs.height=H*dpr;cvs.style.width=W+'px';cvs.style.height=H+'px';
+  const ctx=cvs.getContext('2d');ctx.scale(dpr,dpr);
+  const pL=28,pR=8,pT=16,pB=22,cW=W-pL-pR,cH=H-pT-pB;
+  const isDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const grid=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+  const tc=isDark?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.3)';
+  const dotBg=isDark?'#1a1a1a':'#fff';
+  ctx.font=`10px 'IBM Plex Mono',monospace`;
+  [0,50,100].forEach(v=>{
+    const y=pT+cH*(1-v/100);
+    ctx.strokeStyle=grid;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(pL+cW,y);ctx.stroke();
+    ctx.fillStyle=tc;ctx.textAlign='right';ctx.fillText(v,pL-4,y+3);
+  });
+  const pts=days.map((k,i)=>({x:pL+i*(cW/6),y:logMap[k]!==undefined?pT+cH*(1-logMap[k]/100):null,s:logMap[k]}));
+  const segs=[];let seg=[];
+  pts.forEach(p=>{if(p.y!==null){seg.push(p);}else{if(seg.length)segs.push(seg);seg=[];}});
+  if(seg.length)segs.push(seg);
+  segs.forEach(sg=>{
+    if(sg.length<2)return;
+    ctx.beginPath();ctx.moveTo(sg[0].x,pT+cH);sg.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(sg[sg.length-1].x,pT+cH);ctx.closePath();
+    const gr=ctx.createLinearGradient(0,pT,0,pT+cH);gr.addColorStop(0,'rgba(226,75,74,0.12)');gr.addColorStop(1,'rgba(226,75,74,0)');
+    ctx.fillStyle=gr;ctx.fill();
+    ctx.beginPath();ctx.moveTo(sg[0].x,sg[0].y);
+    for(let i=1;i<sg.length;i++){const mx=(sg[i-1].x+sg[i].x)/2;ctx.bezierCurveTo(mx,sg[i-1].y,mx,sg[i].y,sg[i].x,sg[i].y);}
+    ctx.strokeStyle='#E24B4A';ctx.lineWidth=2;ctx.stroke();
+  });
+  pts.forEach((p,i)=>{
+    ctx.fillStyle=tc;ctx.textAlign='center';ctx.font=`10px 'IBM Plex Mono',monospace`;
+    ctx.fillText(shortLabel(days[i]),p.x,H-pB+13);
+    if(p.y===null)return;
+    ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=dotBg;ctx.fill();ctx.strokeStyle='#E24B4A';ctx.lineWidth=2;ctx.stroke();
+    ctx.font=`500 10px 'IBM Plex Mono',monospace`;ctx.fillStyle='#E24B4A';ctx.fillText(p.s,p.x,p.y-8);
+  });
+}
+
+function renderBadges(){
+  const logs=getAllLogs();const earned=getEarnedBadges();
+  document.getElementById('badges-grid').innerHTML=BADGES.map(b=>`
+    <div class="badge-card ${earned.includes(b.id)?'earned':''}">
+      <div class="badge-icon">${b.icon}</div>
+      <div><div class="badge-name">${b.name}</div><div class="badge-desc">${b.desc}</div></div>
+    </div>`).join('');
+}
+
+function renderLogList(){
+  const logs=getAllLogs();
+  const list=document.getElementById('log-list');
+  if(!logs.length){list.innerHTML='<div style="font-size:12px;color:var(--ink3);font-family:var(--serif);">ログなし。振り返りタブから記録を開始せよ。</div>';return;}
+  list.innerHTML=[...logs].reverse().map(l=>`
+    <div class="log-entry">
+      <div class="le-hdr"><span class="le-date">${fullLabel(l.key)}</span><span class="le-score ${scCls(l.score)}">${l.score}点</span></div>
+      <div class="le-prev">Good: ${escH(l.good||'')} / More: ${escH(l.more||'')}</div>
+    </div>`).join('');
+}
+
+function clearAllLogs(){
+  if(!confirm('全ての振り返りログを削除するか？'))return;
+  LS.keys('reflect:').forEach(k=>LS.del(k));
+  LS.del('meta:badges');
+  refreshHeader();renderLog();
+}
+
+// ── Score UI ─────────────────────────────────────────
+function renderScore(areaId,score,upText){
+  const color=barColor(score);
+  document.getElementById(areaId).innerHTML=`
+    <div class="score-row">
+      <div class="score-card"><div class="sc-lbl">Score</div><div class="sc-num ${scCls(score)}">${score}</div><div style="font-size:10px;color:var(--ink3);margin-top:2px;">/ 100</div></div>
+      <div class="bar-wrap"><div class="up-lbl">▲ 点数を上げるには</div><div class="up-txt">${escH(upText)}</div><div class="bar-bg"><div class="bar-fill" id="bf-${areaId}" style="width:0%;background:${color}"></div></div></div>
+    </div><div class="sdiv"></div>`;
+  setTimeout(()=>{const b=document.getElementById('bf-'+areaId);if(b)b.style.width=score+'%';},100);
+}
+function renderLinkage(areaId,ok,reason){
+  const a=document.getElementById(areaId);
+  a.innerHTML=`<div style="margin-bottom:10px;"><div class="lbadge ${ok?'ok':'ng'}">${ok?'✓ 振り返りと連動あり':'✗ 振り返りとの連動不十分'}</div><div style="font-size:12px;font-family:var(--serif);color:var(--ink3);margin-top:6px;">${escH(reason)}</div></div>`+a.innerHTML;
+}
+
+// ── API ──────────────────────────────────────────────
+const SYS_R=`あなたは栗原一綺（35歳、BizDevに転向中、7月に株式会社HQへ入社予定）の内省を深める審問官AIだ。以下のJSON形式のみで返答せよ。{"score":<0-100>,"score_up":"<改善点1〜2文>","interrogation":"<審問3〜4文>","final_question":"<鋭い問い1文>"}。採点：具体性・自己分析の深さ・行動変容への意志・言い訳の有無。70点台が普通、80点台が鋭い、90点以上はほぼあり得ない。口調：断定的「〜だ」「〜だろう」。敬語は使うが心理的距離は保つ。空虚な褒め言葉禁止。40歳まであと約1700日。`;
+const SYS_G=`あなたは栗原一綺（35歳、BizDevに転向中、7月に株式会社HQへ入社予定）の目標設定を審問する審問官AIだ。以下のJSON形式のみで返答せよ。{"score":<0-100>,"score_up":"<改善点1〜2文>","linkage_ok":<true|false>,"linkage_reason":"<連動判定1文>","interrogation":"<審問3〜4文>","final_question":"<鋭い問い1文>"}。採点：具体性（何を・いつまでに・どの水準）、昨日との連動、宣言性、5年後への接続。口調：断定的。空虚な褒め言葉禁止。40歳まであと約1700日。`;
+
+async function callAPI(sys,content,scoreAreaId,textElId,btnId,isGoal,reflectData){
+  const btn=document.getElementById(btnId);
+  const resp=document.getElementById(btnId.replace('-btn','-resp'));
+  const textEl=document.getElementById(textElId);
+  const scoreArea=document.getElementById(scoreAreaId);
+  btn.disabled=true;resp.classList.add('v');scoreArea.innerHTML='';
+  textEl.innerHTML='<div class="ld"><div class="ldd"></div><div class="ldd"></div><div class="ldd"></div></div>';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system:sys,messages:[{role:'user',content}]})
+    });
+    const data=await r.json();
+    if(data.error){throw new Error(data.error.message);}
+    let raw=(data.content?.[0]?.text||'').trim().replace(/^```json\s*/,'').replace(/\s*```$/,'');
+    const p=JSON.parse(raw);
+    renderScore(scoreAreaId,p.score,p.score_up);
+    if(isGoal)renderLinkage(scoreAreaId,p.linkage_ok,p.linkage_reason);
+    textEl.innerHTML=`<span>${escH(p.interrogation).replace(/\n/g,'<br>')}</span><span class="final-q">▶ ${escH(p.final_question)}</span>`;
+    if(!isGoal&&reflectData){
+      LS.set(todayKey(),{good:reflectData.good,more:reflectData.more,score:p.score,savedAt:new Date().toISOString()});
+      const earned=getEarnedBadges();
+      const logs=getAllLogs();const streak=calcStreak(logs);
+      const newBadges=checkNewBadges(logs,streak,earned);
+      if(newBadges.length)LS.set('meta:badges',[...earned,...newBadges]);
+      refreshHeader();
+      const notice=document.getElementById('save-notice');
+      notice.classList.add('v');
+      if(newBadges.length){
+        const names=newBadges.map(id=>BADGES.find(b=>b.id===id)).filter(Boolean).map(b=>`${b.icon}${b.name}`);
+        notice.textContent=`✓ 保存完了 | 新バッジ: ${names.join(' ')}`;notice.style.color='#BA7517';
+      }else{notice.textContent='✓ 本日の振り返りを保存した';notice.style.color='#639922';}
+    }
+  }catch(e){
+    scoreArea.innerHTML='';
+    textEl.innerHTML=`<span class="err-txt">${e.message||'エラーが発生した。もう一度試みよ。'}</span>`;
+  }
+  btn.disabled=false;
+}
+
+function submitReflect(){
+  const good=document.getElementById('good-input').value.trim();
+  const more=document.getElementById('more-input').value.trim();
+  if(!good&&!more)return;
+  document.getElementById('save-notice').classList.remove('v');
+  callAPI(SYS_R,`【Good】\n${good||'（未入力）'}\n\n【More】\n${more||'（未入力）'}`,'reflect-score-area','reflect-text','reflect-btn',false,{good,more});
+}
+
+async function submitGoal(){
+  const goal=document.getElementById('goal-input').value.trim();
+  if(!goal)return;
+  const yd=LS.get(yesterdayKey());
+  const yt=yd&&yd.score!==undefined?`Good: ${yd.good}\nMore: ${yd.more}`:'（なし）';
+  callAPI(SYS_G,`【今日の目標】\n${goal}\n\n【昨日の振り返り（自動参照）】\n${yt}`,'goal-score-area','goal-text','goal-btn',true,null);
+}
+
+function switchTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+  if(tab==='goal')loadYesterdayLog();
+  if(tab==='log')renderLog();
+}
+
+// ── Init ─────────────────────────────────────────────
+function init(){refreshHeader();}
+
+if(getApiKey()){
+  document.getElementById('apikey-screen').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  init();
+}else{
+  document.getElementById('apikey-screen').style.display='flex';
+  document.getElementById('main-app').style.display='none';
+}
+</script>
+</body>
+</html>
